@@ -1,0 +1,52 @@
+# Estado e cache do Terraform. O estado contem valores em texto claro.
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Lock de providers so tem significado no modulo raiz. Os modulos em
+# terraform/modules/ so recebem init para validacao estatica.
+terraform/modules/*/.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# Variaveis do Terraform. Sempre fora do versionamento; o exemplo sem valores
+# reais fica em terraform.tfvars.example.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Plano salvo em arquivo binario, contem os valores das variaveis.
+*.tfplan
+
+# Segredos do Ansible.
+vault-pass
+.vault-pass
+*.vault
+
+# Inventario gerado a partir do output do Terraform.
+ansible/inventory/hosts.yml
+ansible/inventory/hosts.ini
+
+# Artefatos de execucao do Ansible e do ansible-lint.
+*.retry
+ansible/facts_cache/
+.ansible/
+
+# Chaves privadas e configuracao de peer WireGuard.
+*.pem
+*.key
+*.p12
+id_rsa*
+id_ed25519*
+wg*.conf
+
+# Capitulos extraidos do manual. Conteudo de terceiros.
+docs/manual/
+
+# Sistema operacional e editores.
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

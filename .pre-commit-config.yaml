@@ -1,0 +1,62 @@
+---
+# Validacao estatica obrigatoria. Os hooks usam os binarios ja instalados no
+# devcontainer (language: system), para que a versao verificada aqui seja a
+# mesma que roda a mao.
+#
+# Instalar uma vez por clone:  pre-commit install
+# Rodar em tudo:               pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-executables-have-shebangs
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  - repo: local
+    hooks:
+      - id: terraform-fmt
+        name: terraform fmt
+        entry: terraform fmt -check -recursive -diff terraform
+        language: system
+        files: \.tf(vars)?(\.example)?$
+        pass_filenames: false
+
+      - id: terraform-validate
+        name: terraform validate
+        entry: scripts/tf-validate.sh
+        language: system
+        files: \.tf$
+        pass_filenames: false
+
+      # Warnings sao informativos e nao bloqueiam: enquanto um modulo esta sendo
+      # construido, variaveis declaradas antes de serem consumidas sao esperadas.
+      - id: tflint
+        name: tflint
+        entry: tflint --recursive --chdir=terraform --minimum-failure-severity=error
+        language: system
+        files: \.tf$
+        pass_filenames: false
+
+      - id: ansible-lint
+        name: ansible-lint
+        entry: ansible-lint
+        language: system
+        files: ^ansible/.*\.(yml|yaml)$
+        pass_filenames: false
+
+      # A ultima barreira antes de um segredo entrar no historico. O .gitignore
+      # protege contra descuido; isto protege contra erro de caminho.
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks git --staged --no-banner --redact --exit-code 1
+        language: system
+        pass_filenames: false

@@ -1,0 +1,4 @@
+---
+# Host de aplicacao no subnet privado. Sem endereco publico; alcancado pelo
+# tunel WireGuard.
+host_role: app

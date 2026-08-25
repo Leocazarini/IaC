@@ -1,0 +1,9 @@
+---
+# Collections usadas pelas roles do projeto. Instalar com:
+# ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: ansible.posix
+  - name: community.general
+  - name: community.crypto
+  - name: community.docker
+  - name: amazon.aws

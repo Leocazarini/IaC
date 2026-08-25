@@ -3,11 +3,11 @@
 > **Este é o primeiro arquivo a ler ao retomar o trabalho.** Ele contém apenas
 > status e ponteiros. O conteúdo de cada fase está no documento da sua camada.
 
-**Fase atual:** nenhuma — planejamento concluído, aguardando início da Fase 0.1
-**Próxima ação concreta:** criar a branch `chore/c0f1-estrutura-repo` e montar o
-esqueleto do repositório (estrutura de diretórios, `.gitignore`, pre-commit,
-módulos vazios). Ver [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md)
-para o que vem logo depois.
+**Fase atual:** 0.1 — 🟦 em validação, na branch `chore/c0f1-estrutura-repo`
+**Próxima ação concreta:** mergear a 0.1 e abrir `feat/c1f1-iam-identidade`. A
+Fase 1.1 pode começar sem nenhuma pendência resolvida; a **P3 (região AWS)
+precisa estar decidida antes da Fase 1.2**. Ver
+[`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md).
 
 ---
 
@@ -27,7 +27,7 @@ para o que vem logo depois.
 
 | Fase | Conteúdo | Status | Branch | PR |
 |---|---|---|---|---|
-| 0.1 | Estrutura, `.gitignore`, pre-commit, esqueleto dos módulos | ⬜ | `chore/c0f1-estrutura-repo` | — |
+| 0.1 | Estrutura, `.gitignore`, pre-commit, esqueleto dos módulos | 🟦 | `chore/c0f1-estrutura-repo` | — |
 
 ## Camada 1 — Fundação AWS
 
@@ -114,8 +114,9 @@ Detalhes: [`camadas/camada-8-continuidade.md`](./camadas/camada-8-continuidade.m
 |---|---|---|---|
 | P1 | **Data de criação da conta AWS não confirmada.** Define se o free tier é o modelo legado (750h/mês por 12 meses) ou o novo (crédito de $200 por 6 meses). Muda a estimativa de custo. | Camada 2 | Console AWS → Billing and Cost Management → Free Tier. Ver [`04-custos.md`](./04-custos.md) |
 | P2 | **Domínio e zona Cloudflare não definidos.** | Camada 4 | Confirmar o domínio a usar e que ele já está com nameservers apontando para a Cloudflare |
-| P3 | **Região AWS não decidida.** Afeta latência e preço. | Camada 1 | Decidir antes da Fase 1.2 (`sa-east-1` tem menor latência no Brasil, mas é mais cara que `us-east-1`) |
+| P3 | **Região AWS não decidida.** Afeta latência e preço. | Camada 1 | Decidir antes da Fase 1.2 (`sa-east-1` tem menor latência no Brasil, mas é mais cara que `us-east-1`). Entra em `terraform.tfvars` como `region` e `location_code` |
 | P4 | **Conta Backblaze B2 para backup não criada.** | Camada 8 | Criar antes da Fase 8.1 |
+| P5 | **Repositório não tem remote.** Sem remote não há PR, e o fluxo de uma fase = uma branch = um PR não fecha. | Todas as fases | Criar o repositório remoto e `git remote add origin` |
 
 ---
 

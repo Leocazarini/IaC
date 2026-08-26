@@ -1,8 +1,29 @@
 # Ambiente lab: descartavel por natureza. Criado no inicio de uma sessao de
 # teste, validado e destruido ao final.
 
-# Infraestrutura de compute
-# (implementacao na proxima fase)
+# Infraestrutura de compute, identidade e controle de gasto.
+#
+# O alias de billing e repassado explicitamente: e nele que vive o alarme de
+# EstimatedCharges, que so existe em us-east-1.
+module "compute" {
+  source = "../../modules/compute-aws"
+
+  providers = {
+    aws         = aws
+    aws.billing = aws.billing
+  }
+
+  project       = var.project
+  environment   = var.environment
+  region        = var.region
+  location_code = var.location_code
+
+  admin_cidr     = var.admin_cidr
+  ssh_public_key = var.ssh_public_key
+
+  billing_email    = var.billing_email
+  budget_limit_usd = var.budget_limit_usd
+}
 
 # Borda publica
-# (implementacao na proxima fase)
+# (implementacao na Fase 4.1)

@@ -15,7 +15,7 @@ variable "environment" {
 variable "phase" {
   description = "Fase que criou ou alterou os recursos por ultimo. Preenche a tag Phase."
   type        = string
-  default     = "c0f1"
+  default     = "c1f1"
 }
 
 variable "region" {
@@ -43,6 +43,19 @@ variable "ssh_public_key" {
   description = "Chave publica SSH autorizada no usuario administrativo."
   type        = string
   default     = null
+}
+
+# --- Custo -------------------------------------------------------------------
+
+variable "billing_email" {
+  description = "Endereco que recebe as notificacoes de orcamento e o alarme de cobranca."
+  type        = string
+}
+
+variable "budget_limit_usd" {
+  description = "Teto do orcamento mensal em USD."
+  type        = number
+  default     = 10
 }
 
 # --- Borda publica -----------------------------------------------------------

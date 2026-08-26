@@ -119,3 +119,27 @@ variable "app_root_volume_size" {
   type        = number
   default     = 20
 }
+
+# --- Custo -------------------------------------------------------------------
+
+variable "billing_email" {
+  description = "Endereco que recebe as notificacoes de orcamento e o alarme de cobranca. Vem do terraform.tfvars, que e gitignored."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", var.billing_email))
+    error_message = "billing_email precisa ser um endereco de e-mail valido: sem ele o orcamento e o alarme nao avisam ninguem."
+  }
+}
+
+variable "budget_limit_usd" {
+  description = "Teto do orcamento mensal em USD. Notifica em 80% do realizado e em 100% da projecao."
+  type        = number
+  default     = 10
+}
+
+variable "billing_alarm_threshold_usd" {
+  description = "Valor de EstimatedCharges acima do qual o alarme dispara, em USD."
+  type        = number
+  default     = 10
+}

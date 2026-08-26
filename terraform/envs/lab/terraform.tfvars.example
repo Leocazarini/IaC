@@ -15,6 +15,13 @@ admin_cidr = ["203.0.113.10/32"]
 # A chave privada correspondente nunca entra no repositorio.
 ssh_public_key = "ssh-ed25519 AAAA... operador@maquina"
 
+# Quem recebe o aviso de orcamento e o alarme de cobranca. A assinatura do SNS
+# chega como e-mail de confirmacao e precisa ser aceita uma vez.
+billing_email = "voce@exemplo.com"
+
+# Teto mensal em USD. Notifica em 80% do realizado e em 100% da projecao.
+budget_limit_usd = 10
+
 # Borda publica. Preencher a partir da Fase 4.1.
 # domain             = "exemplo.com"
 # cloudflare_zone_id = "0123456789abcdef0123456789abcdef"

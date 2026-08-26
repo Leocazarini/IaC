@@ -10,7 +10,9 @@ precisa é instalado na máquina do host.
 ./.devcontainer/dev shell     # sobe o container (constrói na 1ª vez) e abre um shell
 ./.devcontainer/dev claude    # abre o Claude Code dentro do container
 ./.devcontainer/dev up        # apenas sobe, sem entrar
+./.devcontainer/dev key       # mostra a chave pública deploy-key-github
 ./.devcontainer/dev exec <cmd>
+./.devcontainer/dev manual    # converte docs/manual/*.docx em PDF
 ./.devcontainer/dev build     # reconstrói a imagem do zero
 ./.devcontainer/dev down      # para e remove o container
 ./.devcontainer/dev nuke      # remove também os volumes de estado
@@ -29,7 +31,14 @@ via `devcontainer.json`.
 | gitleaks | Varredura de segredos exigida antes de todo PR |
 | pre-commit | Ganchos de validação da Fase 0.1 |
 | Claude Code | Assistente, rodando dentro do ambiente |
+| LibreOffice (headless) | Converte os capítulos `.docx` do manual em PDF legível |
 | `wireguard-tools`, `dig`, `nc`, `jq`, `git`, `ssh` | Validação manual dos hosts |
+
+## Capítulos do manual
+
+Os `.docx` de `docs/manual/` não são legíveis por ferramenta de texto. O comando
+`dev manual` converte todos em PDF ao lado dos originais, preservando imagens e
+blocos de código. O diretório inteiro é gitignored — conteúdo de terceiros.
 
 `boto3`/`botocore` já estão injetados no ambiente do Ansible, requisito dos
 módulos `amazon.aws`.
@@ -47,38 +56,70 @@ Para reaproveitar o login do host sem autenticar de novo, descomente em
 - ${HOME}/.claude/.credentials.json:/home/dev/.claude/.credentials.json
 ```
 
-## Identidade e credenciais
+## Isolamento
 
-O usuário do container é `dev`, com UID/GID iguais aos do host — arquivos
-criados em `/workspace` pertencem ao seu usuário, sem `root` no meio do caminho.
+O container não enxerga nenhum caminho do host além do próprio repositório,
+montado em `/workspace`. Não há montagem de `~/.ssh`, `~/.aws` ou `~/.gitconfig`:
+uma credencial que não pertence a este projeto não existe aqui dentro.
 
-Do host são montados:
+A única informação repassada do host é o nome e o e-mail de autoria dos commits,
+lidos pelo script `dev` com `git config --get` e entregues como variável de
+ambiente.
 
-| Caminho | Modo | Por quê |
-|---|---|---|
-| `~/.aws` | leitura e escrita | Perfil do `aws-cli`, conforme `docs/06-convencoes.md`; escrita permite `aws configure` e cache de SSO |
-| `~/.ssh` | somente leitura | Chaves de acesso aos hosts; somente leitura evita alteração acidental a partir do container |
-| `~/.gitconfig` | somente leitura | Autoria correta dos commits |
+## Chave SSH
 
-Como `~/.ssh` é somente leitura, o `ssh` não consegue gravar em `known_hosts` e
-emite um aviso ao conectar a um host novo — a conexão funciona. O Ansible já
-roda com `ANSIBLE_HOST_KEY_CHECKING=False`.
+Na primeira subida, o container gera a própria chave — `deploy-key-github`,
+ed25519, sem passphrase — e a guarda no volume `ssh-keys`. Ela sobrevive a
+`dev down`, `dev up` e reconstruções da imagem; some apenas com `dev nuke`, e aí
+uma nova precisa ser cadastrada.
 
-Essas montagens dão a qualquer processo do container acesso às suas credenciais
-reais de AWS e SSH. É o que torna o ambiente utilizável para IaC; para uma
-sessão sem esse acesso, comente as três linhas em `docker-compose.yml`.
+```bash
+./.devcontainer/dev key      # mostra a chave pública
+```
+
+Cadastre-a no GitHub em **Settings → Deploy keys → Add deploy key** do
+repositório, marcando *Allow write access* se for fazer push a partir do
+container. A deploy key vale para um repositório só — é exatamente o escopo
+desejado.
+
+O remote precisa ser SSH para a chave ser usada:
+
+```bash
+git remote add origin git@github.com:<usuario>/<repo>.git
+```
+
+O `~/.ssh/config` do container aponta essa chave para o `github.com` com
+`IdentitiesOnly yes`, e o `known_hosts` já vem com a chave pública do servidor do
+GitHub fixada, o que dispensa a confirmação interativa da primeira conexão.
+
+Para acessar os hosts da infraestrutura, gere um par próprio dentro do container
+(`ssh-keygen -t ed25519 -f ~/.ssh/<nome>`) e registre a pública no Terraform.
+Chaves do host não entram aqui.
+
+## Credenciais AWS
+
+O volume `aws-config` nasce vazio. Configure dentro do container, uma vez:
+
+```bash
+./.devcontainer/dev exec aws configure
+```
+
+Use um usuário IAM dedicado a este projeto, com as permissões que ele realmente
+precisa — não as suas credenciais de uso geral. `docs/06-convencoes.md` já define
+que credencial AWS vive no perfil do `aws-cli` e nunca no código.
 
 ## Estado preservado entre execuções
 
 | Volume | Conteúdo |
 |---|---|
+| `ssh-keys` | A chave `deploy-key-github` e a configuração do SSH |
+| `aws-config` | Perfil do `aws-cli` do projeto |
 | `claude-state` | Autenticação e configuração do Claude Code |
 | `shell-history` | Histórico do bash |
 | `terraform-plugin-cache` | Providers baixados, compartilhados entre ambientes |
 
 ## Docker dentro do container
 
-Não vem habilitado. O Docker do projeto roda nos hosts gerenciados, via Ansible.
-Para testar roles localmente com `molecule`, descomente a montagem do socket em
-`docker-compose.yml` — ela concede ao container controle total sobre o Docker do
-host.
+Não há socket do Docker montado. O Docker do projeto roda nos hosts gerenciados,
+via Ansible; montar o socket do host daria ao container controle total sobre ele,
+o que contraria o isolamento descrito acima.

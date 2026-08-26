@@ -85,6 +85,13 @@ RUN pipx install --include-deps ansible \
 # Claude Code.
 RUN npm install -g @anthropic-ai/claude-code && npm cache clean --force
 
+# LibreOffice headless, para converter os capítulos .docx do manual em PDF legível.
+# Somente o Writer e as fontes necessárias; a suíte completa não é instalada.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libreoffice-writer libreoffice-core \
+        fonts-liberation fonts-dejavu-core fonts-noto-core \
+    && rm -rf /var/lib/apt/lists/*
+
 # Usuário não-root com o mesmo UID/GID do host, para que os arquivos criados no
 # bind mount do projeto pertençam ao usuário do host.
 RUN set -eux; \
@@ -103,7 +110,10 @@ RUN install -d -o "${USER_UID}" -g "${USER_GID}" \
         /home/${USERNAME}/.claude \
         /home/${USERNAME}/.aws \
         /home/${USERNAME}/.cache \
-        /home/${USERNAME}/.terraform.d/plugin-cache
+        /home/${USERNAME}/.terraform.d/plugin-cache \
+    && install -d -m 700 -o "${USER_UID}" -g "${USER_GID}" /home/${USERNAME}/.ssh
+
+COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
 
 USER ${USERNAME}
 WORKDIR /workspace
@@ -126,4 +136,5 @@ RUN printf '%s\n' \
         '[ -f /etc/bash_completion ] && . /etc/bash_completion' \
         >> /home/${USERNAME}/.bashrc
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["sleep", "infinity"]

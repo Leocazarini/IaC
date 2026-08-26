@@ -4,6 +4,8 @@
 #   ./.devcontainer/dev up       sobe o container (constrói na primeira vez)
 #   ./.devcontainer/dev shell    abre um shell dentro dele
 #   ./.devcontainer/dev claude   abre o Claude Code dentro dele
+#   ./.devcontainer/dev key      mostra a chave pública deploy-key-github
+#   ./.devcontainer/dev manual   converte docs/manual/*.docx em PDF
 #   ./.devcontainer/dev build    reconstrói a imagem do zero
 #   ./.devcontainer/dev down     para e remove o container
 #   ./.devcontainer/dev nuke     remove também os volumes de estado
@@ -14,6 +16,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 export HOST_UID="$(id -u)"
 export HOST_GID="$(id -g)"
 
+# Única informação do host repassada ao container, para a autoria dos commits.
+export GIT_USER_NAME="$(git config --get user.name || true)"
+export GIT_USER_EMAIL="$(git config --get user.email || true)"
+
 compose() { docker compose "$@"; }
 
 up() { compose up -d --build; }
@@ -23,8 +29,10 @@ case "${1:-shell}" in
   shell)  up; compose exec dev bash ;;
   claude) up; compose exec dev claude "${@:2}" ;;
   exec)   up; compose exec dev "${@:2}" ;;
+  key)    up; compose exec dev cat /home/dev/.ssh/deploy-key-github.pub ;;
+  manual) up; compose exec dev bash -c 'cd /workspace/docs/manual && soffice --headless --norestore --convert-to pdf --outdir . *.docx' ;;
   build)  compose build --no-cache ;;
   down)   compose down ;;
   nuke)   compose down -v ;;
-  *)      echo "uso: dev {up|shell|claude|exec|build|down|nuke}" >&2; exit 1 ;;
+  *)      echo "uso: dev {up|shell|claude|exec|key|manual|build|down|nuke}" >&2; exit 1 ;;
 esac

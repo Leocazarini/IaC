@@ -225,3 +225,49 @@ em vez de vir pronto na imagem.
 **Descartado.** *AMI CIS do Marketplace* — conformidade pronta, custo recorrente e
 hardening opaco. *Amazon Linux* — melhor integração com a AWS, mas divergiria do
 manual inteiro, que é escrito para Debian/Ubuntu.
+
+---
+
+## ADR-009 — Usuário IAM com `assume-role` e MFA, não IAM Identity Center
+
+**Contexto.** O guia de segurança e a Fase 1.1 previam o IAM Identity Center como
+a forma de sair do usuário root: identidade centralizada, credencial de curta
+duração, sem access key permanente. O serviço em si é gratuito.
+
+Ao tentar ativá-lo, o console avisou que a conta perderia o free tier. O motivo:
+uma conta standalone só consegue um **organization instance** do Identity Center,
+e criar esse instance **cria uma AWS Organization** com a própria conta como
+management account. Nos termos do Free account plan, entrar no AWS Organizations
+é uma das sete ações que convertem a conta para o plano pago — e os créditos
+**expiram imediatamente**, não são transferidos.
+
+A alternativa dentro do próprio serviço, o **account instance**, não exige
+Organizations, mas só faz atribuição de *aplicações* dentro da conta. Não concede
+acesso administrativo à conta AWS, que é exatamente o que a Fase 1.1 precisa.
+
+**Decisão.** O acesso administrativo é um usuário IAM sem permissão própria, que
+assume uma role de administração com `sts:AssumeRole` condicionado a MFA. O perfil
+do `aws-cli` é configurado com `role_arn` + `mfa_serial`, de modo que a credencial
+efetivamente usada pelo Terraform é temporária. O root fica com MFA e sai de uso.
+
+**Consequências.**
+- O Free account plan é preservado: os créditos e o prazo de 6 meses continuam
+  valendo, e a premissa de custo do projeto (ADR-003, ADR-004) não é abandonada
+  logo na primeira fase.
+- A credencial que o Terraform usa é de curta duração e exige MFA a cada sessão —
+  o essencial do que o Identity Center entregaria.
+- **Sobra uma access key de vida longa**, a do usuário IAM. É a diferença real
+  para o Identity Center, e não desaparece: mitiga-se mantendo essa key sem
+  nenhuma permissão além de assumir a role, e rotacionando-a.
+- Perde-se o portal de acesso, o login federado e a gestão de identidade
+  centralizada. Para um operador só, nenhum dos três resolve um problema existente.
+- **A decisão é reversível e tem hora marcada para ser revista:** quando o Free
+  account plan encerrar e a conta migrar para o Paid account plan, o custo de
+  ativar o Identity Center passa a ser zero. Ver [`04-custos.md`](./04-custos.md).
+
+**Descartado.** *Identity Center (organization instance)* — melhor postura de
+identidade, mas o preço é o free tier inteiro e a conversão para pay-as-you-go
+desde o primeiro dia. *Identity Center (account instance)* — preserva o free tier,
+mas não faz acesso administrativo à conta; resolveria outro problema. *Usuário IAM
+administrativo com access key direta* — mais simples, mas deixa uma credencial
+permanente com privilégio administrativo, que é o pior dos dois mundos.

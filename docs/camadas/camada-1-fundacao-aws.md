@@ -73,6 +73,14 @@ a role vira apenas um atalho para privilégio permanente:
 }
 ```
 
+**Permissão da role.** A role recebe `AdministratorAccess`, e isso **não**
+contradiz a regra de privilégio mínimo da fase — a regra vale para as roles de
+*instância*, que o Terraform cria e que rodam sem supervisão. Esta é a identidade
+de bootstrap do operador: ela precisa criar VPC, EC2, S3, CloudTrail, IAM e tudo
+mais que as 22 fases declararem, e uma política enumerando isso quebraria a cada
+fase nova. O que a limita não é o escopo, é o tempo e o segundo fator: a
+credencial expira e não sai sem MFA.
+
 **Policy do usuário `ops-admin`** — a única que ele recebe:
 
 ```json

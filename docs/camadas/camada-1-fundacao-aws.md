@@ -55,6 +55,59 @@ como procedimento documentado, executado uma vez:
 > instance* preserva o free tier mas só atribui aplicações — não dá acesso
 > administrativo à conta.
 
+**Trust policy da role administrativa.** É ela que exige o MFA — sem a condição,
+a role vira apenas um atalho para privilégio permanente:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "AWS": "arn:aws:iam::<ACCOUNT_ID>:user/ops-admin" },
+    "Action": "sts:AssumeRole",
+    "Condition": {
+      "Bool": { "aws:MultiFactorAuthPresent": "true" },
+      "NumericLessThan": { "aws:MultiFactorAuthAge": "43200" }
+    }
+  }]
+}
+```
+
+**Policy do usuário `ops-admin`** — a única que ele recebe:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "sts:AssumeRole",
+    "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/ops-admin-role"
+  }]
+}
+```
+
+**Perfil do `aws-cli`.** O `aws configure` guarda a access key em
+`~/.aws/credentials`; o perfil que o Terraform usa fica em `~/.aws/config` e
+aponta para a role. No devcontainer, `/home/dev/.aws` é um volume Docker nomeado
+— sobrevive a rebuild e nunca toca o repositório.
+
+```ini
+# ~/.aws/credentials  — a access key de vida longa, sem privilégio proprio
+[ops-admin]
+aws_access_key_id     = AKIA...
+aws_secret_access_key = ...
+
+# ~/.aws/config  — o perfil efetivamente usado
+[profile ops]
+role_arn       = arn:aws:iam::<ACCOUNT_ID>:role/ops-admin-role
+source_profile = ops-admin
+mfa_serial     = arn:aws:iam::<ACCOUNT_ID>:mfa/ops-admin
+region         = us-east-1
+```
+
+Com isso, `export AWS_PROFILE=ops` faz o `aws-cli` e o Terraform pedirem o código
+do MFA e trabalharem com credencial temporária.
+
 ### O que vira Terraform
 
 | Recurso | Função |

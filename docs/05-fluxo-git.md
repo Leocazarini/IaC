@@ -62,7 +62,7 @@ que cada commit deixe a branch num estado coerente.
  8. Documentar→ gerar os dois textos (templates abaixo) e entregar ao operador
  9. PR        → descrição = texto simples
 10. Merge     → comentário principal = texto técnico
-11. Registrar → atualizar docs/PROGRESS.md (status, PR, histórico)
+11. Registrar → atualizar docs/PROGRESS.md (status, PR, histórico, pendências)
 12. Destruir  → terraform destroy no lab (perguntar antes se deve ficar de pé)
 ```
 
@@ -70,6 +70,30 @@ que cada commit deixe a branch num estado coerente.
 isso só é verdade se cada fase foi validada numa instância criada do zero. Toda
 role Ansible precisa provar idempotência: a segunda execução tem que retornar
 `changed=0`.
+
+---
+
+## Quem mantém o `PROGRESS.md`
+
+**O assistente edita; o operador revisa o diff.** O arquivo é estado do projeto,
+não anotação pessoal: quem acabou de executar um passo do ciclo é quem sabe o que
+mudou, e deixar o registro para depois é como ele fica errado.
+
+São quatro momentos, e só esses quatro:
+
+| Momento | O que muda |
+|---|---|
+| Abriu a branch (passo 3) | Status da fase → 🟨 · cabeçalho aponta para a branch nova |
+| Aplicou e está rodando o checklist (passos 6–7) | Status da fase → 🟦 |
+| Mergeou (passo 11) | Status → ✅ · número do PR · linha no histórico de conclusões · pendências resolvidas saem e novas entram |
+| Descobriu um bloqueio a qualquer momento | Nova linha em "Pendências abertas", com o que ela bloqueia e como resolver |
+
+O cabeçalho — **Fase atual** e **Próxima ação concreta** — é reescrito em todos
+eles. Ele é a primeira coisa que a sessão seguinte lê; se estiver desatualizado,
+o resto do arquivo não salva.
+
+O operador continua dono de duas coisas que o assistente não faz sozinho: abrir e
+mergear o PR, e executar os passos que só existem no console do provedor.
 
 ---
 

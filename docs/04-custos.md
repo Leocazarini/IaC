@@ -4,6 +4,11 @@ Todos os valores abaixo foram verificados nas páginas oficiais de preço da AWS
 (links ao final). Preços em USD, região `us-east-1`. Regiões brasileiras
 (`sa-east-1`) custam significativamente mais.
 
+A região do projeto é **`us-east-1`** (`location_code = "use1"`) — decidida na
+Fase 1.1, pelo custo e por ser onde a métrica de billing existe de qualquer
+forma. A latência maior a partir do Brasil é o preço aceito; num ambiente de
+laboratório destruído ao final de cada sessão, ela não é o critério dominante.
+
 ---
 
 ## Pendência: qual é o free tier desta conta?

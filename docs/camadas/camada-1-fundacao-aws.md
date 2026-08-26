@@ -56,7 +56,9 @@ como procedimento documentado, executado uma vez:
 > administrativo à conta.
 
 **Trust policy da role administrativa.** É ela que exige o MFA — sem a condição,
-a role vira apenas um atalho para privilégio permanente:
+a role vira apenas um atalho para privilégio permanente. Nos três blocos abaixo,
+`<ACCOUNT_ID>` é marcador de lugar: substitua o texto **e os sinais `<` `>`** pelo
+número da conta, senão o editor de políticas do console recusa o JSON.
 
 ```json
 {

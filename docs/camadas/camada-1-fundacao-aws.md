@@ -115,8 +115,28 @@ mfa_serial     = arn:aws:iam::<ACCOUNT_ID>:mfa/ops-admin
 region         = us-east-1
 ```
 
-Com isso, `export AWS_PROFILE=ops` faz o `aws-cli` e o Terraform pedirem o código
-do MFA e trabalharem com credencial temporária.
+Com isso, `export AWS_PROFILE=ops` faz o `aws-cli` pedir o código do MFA e
+trabalhar com credencial temporária.
+
+**O Terraform não usa esse perfil diretamente.** O provider AWS lê o
+`mfa_serial`, entende que precisa de um token e falha com *"assume role with MFA
+enabled, but AssumeRoleTokenProvider session option not set"* — ele não tem
+prompt interativo para pedir o código. Quem tem é o `aws-cli`, então ele resolve
+a credencial e a entrega pronta:
+
+```bash
+export AWS_PROFILE=ops
+aws sts get-caller-identity          # pede o codigo do MFA uma vez, e cacheia
+
+eval "$(aws configure export-credentials --profile ops --format env)"
+unset AWS_PROFILE                    # as variaveis de ambiente tem precedencia
+terraform plan
+```
+
+O `export-credentials` lê o cache que o comando anterior deixou em
+`~/.aws/cli/cache` e exporta `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e
+`AWS_SESSION_TOKEN` já assumidos. Vale pelo tempo de sessão da role — uma hora,
+por padrão. Passado isso, repetir os dois comandos.
 
 ### O que vira Terraform
 

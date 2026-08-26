@@ -3,11 +3,10 @@
 > **Este é o primeiro arquivo a ler ao retomar o trabalho.** Ele contém apenas
 > status e ponteiros. O conteúdo de cada fase está no documento da sua camada.
 
-**Fase atual:** 1.1 — 🟨 em andamento, na branch `feat/c1f1-iam-identidade`
-**Próxima ação concreta:** no console, criar o usuário IAM de operação e a role
-administrativa com MFA (**ADR-009** — o IAM Identity Center está descartado
-porque criaria uma AWS Organization e custaria o free tier), e configurar o
-perfil do `aws-cli`. Isso resolve a **P6** e destrava o `apply`. Ver
+**Fase atual:** 1.1 — 🟦 em validação, na branch `feat/c1f1-iam-identidade`
+**Próxima ação concreta:** confirmar a assinatura de e-mail do SNS (chega como
+mensagem da AWS, exige um clique) e fechar o checklist da fase. Depois: os dois
+textos, o PR, e a Fase 1.2. Ver
 [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md).
 
 ---
@@ -36,7 +35,7 @@ Detalhes: [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.m
 
 | Fase | Conteúdo | Status | Branch | PR |
 |---|---|---|---|---|
-| 1.1 | Identidade: IAM, instance profiles, alarme de billing | 🟨 | `feat/c1f1-iam-identidade` | — |
+| 1.1 | Identidade: IAM, instance profiles, alarme de billing | 🟦 | `feat/c1f1-iam-identidade` | — |
 | 1.2 | Rede: VPC, subnets, IGW, rotas, SG, NACL | ⬜ | `feat/c1f2-vpc-rede` | — |
 | 1.3 | Criptografia e auditoria: EBS default, CloudTrail, Flow Logs | ⬜ | `feat/c1f3-cripto-auditoria` | — |
 
@@ -115,10 +114,12 @@ Detalhes: [`camadas/camada-8-continuidade.md`](./camadas/camada-8-continuidade.m
 |---|---|---|---|
 | P2 | **Domínio e zona Cloudflare não definidos.** | Camada 4 | Confirmar o domínio a usar e que ele já está com nameservers apontando para a Cloudflare |
 | P4 | **Conta Backblaze B2 para backup não criada.** | Camada 8 | Criar antes da Fase 8.1 |
-| P6 | **Credencial AWS não configurada no devcontainer.** `aws sts get-caller-identity` falha com `The config profile (default) could not be found`. Sem ela não há `apply` nem checklist — o código da fase pode ser escrito e validado estaticamente, mas não aplicado. | Fase 1.1 em diante | Seguir o bootstrap de identidade de [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md): usuário IAM + role administrativa com MFA (ADR-009), depois perfil do `aws-cli` com `role_arn` + `mfa_serial` |
 | P7 | **O Free account plan encerra em 6 meses ou quando os créditos zerarem — e a conta fecha automaticamente.** Há 90 dias para migrar ao Paid account plan antes da exclusão dos recursos. | Continuidade do projeto | Acompanhar o saldo em Billing → Free Tier; decidir a migração antes do fim do prazo. Ver [`04-custos.md`](./04-custos.md) |
 
-**Resolvidas:** P1 — a conta está no **Free account plan** (modelo novo,
+**Resolvidas:** P6 — identidade de bootstrap de pé: usuário `ops-admin` com MFA,
+role `ops-admin-role` exigindo MFA na trust policy, e o perfil `ops` do
+`aws-cli`. Verificado: assumir sem MFA retorna `AccessDenied`. P1 — a conta está
+no **Free account plan** (modelo novo,
 pós-15/jul/2025): US$ 100 + até US$ 100 em créditos, 6 meses de prazo, sem as
 750 h/mês do modelo legado; registrado em [`04-custos.md`](./04-custos.md) e
 desdobrado na P7. P3 — região decidida: `us-east-1` / `location_code = "use1"`.

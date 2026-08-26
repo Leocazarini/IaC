@@ -1,0 +1,4 @@
+---
+# O bastion acumula NAT e servidor WireGuard, e nao roda aplicacao. Por
+# concentrar exposicao, recebe hardening mais rigoroso que o host de aplicacao.
+host_role: bastion

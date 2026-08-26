@@ -1,0 +1,19 @@
+---
+# Playbook principal. Aplica a configuracao completa dos dois hosts.
+#
+# O bastion vem primeiro: ate ele rotear e terminar o tunel, o host de
+# aplicacao nao e alcancavel.
+
+- name: Configure bastion host
+  hosts: bastion
+  gather_facts: true
+  roles: []
+  # Roles base, ssh_hardening, nat e wireguard
+  # (implementacao na proxima fase)
+
+- name: Configure application host
+  hosts: app
+  gather_facts: true
+  roles: []
+  # Roles base, ssh_hardening, firewall, crowdsec, docker e traefik
+  # (implementacao na proxima fase)

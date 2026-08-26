@@ -19,30 +19,24 @@ services:
     environment:
       TZ: America/Sao_Paulo
       AWS_PROFILE: ${AWS_PROFILE:-default}
+      # Apenas nome e e-mail de autoria, lidos do host pelo script `dev`.
+      GIT_USER_NAME: ${GIT_USER_NAME:-}
+      GIT_USER_EMAIL: ${GIT_USER_EMAIL:-}
     volumes:
-      # O repositório. É o único caminho compartilhado com o host por padrão.
+      # O repositório é o único caminho do host visível dentro do container.
       - ..:/workspace
 
-      # Credenciais e identidade do host.
-      # Leitura e escrita em .aws para permitir `aws configure` e cache de SSO.
-      - ${HOME}/.aws:/home/dev/.aws
-      - ${HOME}/.ssh:/home/dev/.ssh:ro
-      - ${HOME}/.gitconfig:/home/dev/.gitconfig:ro
-
-      # Estado do container, preservado entre recriações.
+      # Estado do container, preservado entre recriações e reconstruções da
+      # imagem. Nenhum destes volumes tem correspondência no host.
+      - ssh-keys:/home/dev/.ssh
+      - aws-config:/home/dev/.aws
       - claude-state:/home/dev/.claude
       - shell-history:/commandhistory
       - terraform-plugin-cache:/home/dev/.terraform.d/plugin-cache
 
-      # Login do Claude Code reaproveitado do host. Descomente para não precisar
-      # autenticar de novo dentro do container.
-      # - ${HOME}/.claude/.credentials.json:/home/dev/.claude/.credentials.json
-
-      # Docker do host, para testar roles com molecule. Concede ao container
-      # controle total sobre o Docker do host — manter desligado sem necessidade.
-      # - /var/run/docker.sock:/var/run/docker.sock
-
 volumes:
+  ssh-keys:
+  aws-config:
   claude-state:
   shell-history:
   terraform-plugin-cache:

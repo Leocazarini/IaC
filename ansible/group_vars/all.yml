@@ -1,0 +1,24 @@
+---
+# Valores compartilhados por todos os hosts. Nenhuma role define valor fixo
+# dentro de uma task; tudo que varia entra aqui ou em defaults/main.yml da role.
+
+# --- Identificacao -----------------------------------------------------------
+project_name: vps-infra
+environment_name: lab
+
+# --- Acesso ------------------------------------------------------------------
+# Usuario administrativo criado pela role base. O usuario padrao da AMI e
+# desabilitado depois do bootstrap.
+admin_user: ops
+ssh_port: 22
+
+# --- Rede --------------------------------------------------------------------
+vpc_cidr: "10.0.0.0/16"
+public_subnet_cidr: "10.0.1.0/24"
+private_subnet_cidr: "10.0.11.0/24"
+wireguard_cidr: "10.8.0.0/24"
+wireguard_port: 51820
+
+# --- Localizacao -------------------------------------------------------------
+timezone: America/Sao_Paulo
+locale: en_US.UTF-8

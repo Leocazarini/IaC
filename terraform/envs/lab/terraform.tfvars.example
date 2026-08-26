@@ -1,0 +1,20 @@
+# Copie para terraform.tfvars e preencha. O arquivo terraform.tfvars e
+# gitignored e nunca deve ser commitado.
+
+# Regiao e o codigo curto correspondente, usado no hostname.
+# sa-east-1 tem a menor latencia no Brasil; us-east-1 e a mais barata.
+region        = "us-east-1"
+location_code = "use1"
+
+# Janela de bootstrap: seu IP publico com mascara /32.
+# Esvaziar para [] depois que o tunel WireGuard estiver de pe.
+# Descubra com: curl -s https://ifconfig.me
+admin_cidr = ["203.0.113.10/32"]
+
+# Chave publica do par usado para o acesso administrativo.
+# A chave privada correspondente nunca entra no repositorio.
+ssh_public_key = "ssh-ed25519 AAAA... operador@maquina"
+
+# Borda publica. Preencher a partir da Fase 4.1.
+# domain             = "exemplo.com"
+# cloudflare_zone_id = "0123456789abcdef0123456789abcdef"

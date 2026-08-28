@@ -22,6 +22,16 @@ variable "location_code" {
 
 # --- Rede --------------------------------------------------------------------
 
+variable "availability_zone" {
+  description = <<-EOT
+    Zona de disponibilidade dos dois subnets. Ambos ficam na mesma zona: o
+    trafego entre o bastion e o host de aplicacao e cobrado entre zonas.
+    Nulo usa a primeira zona disponivel da regiao.
+  EOT
+  type        = string
+  default     = null
+}
+
 variable "vpc_cidr" {
   description = "Bloco CIDR da VPC."
   type        = string
@@ -44,6 +54,12 @@ variable "wireguard_cidr" {
   description = "Bloco CIDR da rede WireGuard. Nao pode se sobrepor ao CIDR da VPC."
   type        = string
   default     = "10.8.0.0/24"
+}
+
+variable "wireguard_port" {
+  description = "Porta UDP em que o servidor WireGuard escuta no bastion."
+  type        = number
+  default     = 51820
 }
 
 variable "bastion_private_ip" {
@@ -72,6 +88,12 @@ variable "admin_cidr" {
     condition     = !contains(var.admin_cidr, "0.0.0.0/0")
     error_message = "admin_cidr nao pode ser 0.0.0.0/0: a janela de bootstrap precisa ser restrita a um endereco conhecido."
   }
+}
+
+variable "cloudflare_ipv4_url" {
+  description = "Endereco da lista de ranges IPv4 publicados pela Cloudflare, lida em tempo de plano."
+  type        = string
+  default     = "https://www.cloudflare.com/ips-v4"
 }
 
 # --- Acesso ------------------------------------------------------------------

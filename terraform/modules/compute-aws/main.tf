@@ -16,5 +16,5 @@ locals {
   name_prefix = "${var.project}-${var.environment}"
 }
 
-# Recursos de rede, identidade, instancias e auditoria
+# Instancias, criptografia em repouso e auditoria
 # (implementacao na proxima fase)

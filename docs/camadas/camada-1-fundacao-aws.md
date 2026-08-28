@@ -28,14 +28,115 @@ administrador — é o equivalente ao root sem senha.
 
 ### O que é feito à mão (e por quê)
 
-Três itens não são automatizáveis e ficam registrados aqui como procedimento
-documentado, executado uma vez:
+Estes itens não são automatizáveis — ou porque não têm API, ou porque são
+justamente o que dá ao Terraform a permissão de existir. Ficam registrados aqui
+como procedimento documentado, executado uma vez:
 
 1. **MFA no usuário root da conta.** Não há API para configurar MFA no root. Feito
    pelo console, uma vez, e o root não volta a ser usado no dia a dia.
-2. **Ativação do IAM Identity Center.** Exige interação inicial pelo console.
-3. **Confirmação do tipo de free tier da conta** — pendência P1 em
-   [`../PROGRESS.md`](../PROGRESS.md). Console → Billing → Free Tier.
+2. **Usuário IAM de operação + role administrativa com MFA.** Substitui o IAM
+   Identity Center, que criaria uma AWS Organization e custaria o free tier da
+   conta — ver **ADR-009** em [`../03-decisoes.md`](../03-decisoes.md). É o
+   bootstrap da identidade: sem essa credencial, o Terraform não roda, então ela
+   não pode ser criada pelo Terraform. Sequência no console:
+   - Criar o usuário IAM (ex.: `ops-admin`), com MFA virtual, **sem nenhuma
+     policy anexada** além da de assumir a role.
+   - Criar a role administrativa com trust policy para o próprio usuário,
+     condicionada a `aws:MultiFactorAuthPresent = true`.
+   - Gerar a access key do usuário e configurar o perfil do `aws-cli` com
+     `role_arn` + `mfa_serial`, para que a credencial efetiva seja temporária.
+3. **Confirmação do tipo de free tier da conta.** Console → Billing → Free Tier.
+   *(Resolvida: Free account plan, modelo novo — registrado em
+   [`../04-custos.md`](../04-custos.md).)*
+
+> **Não ative o IAM Identity Center nesta conta.** Numa conta standalone ele só
+> existe como *organization instance*, o que cria uma AWS Organization e converte
+> o Free account plan em plano pago, expirando os créditos na hora. O *account
+> instance* preserva o free tier mas só atribui aplicações — não dá acesso
+> administrativo à conta.
+
+**Trust policy da role administrativa.** É ela que exige o MFA — sem a condição,
+a role vira apenas um atalho para privilégio permanente. Nos três blocos abaixo,
+`<ACCOUNT_ID>` é marcador de lugar: substitua o texto **e os sinais `<` `>`** pelo
+número da conta, senão o editor de políticas do console recusa o JSON.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "AWS": "arn:aws:iam::<ACCOUNT_ID>:user/ops-admin" },
+    "Action": "sts:AssumeRole",
+    "Condition": {
+      "Bool": { "aws:MultiFactorAuthPresent": "true" },
+      "NumericLessThan": { "aws:MultiFactorAuthAge": "43200" }
+    }
+  }]
+}
+```
+
+**Permissão da role.** A role recebe `AdministratorAccess`, e isso **não**
+contradiz a regra de privilégio mínimo da fase — a regra vale para as roles de
+*instância*, que o Terraform cria e que rodam sem supervisão. Esta é a identidade
+de bootstrap do operador: ela precisa criar VPC, EC2, S3, CloudTrail, IAM e tudo
+mais que as 22 fases declararem, e uma política enumerando isso quebraria a cada
+fase nova. O que a limita não é o escopo, é o tempo e o segundo fator: a
+credencial expira e não sai sem MFA.
+
+**Policy do usuário `ops-admin`** — a única que ele recebe:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": "sts:AssumeRole",
+    "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/ops-admin-role"
+  }]
+}
+```
+
+**Perfil do `aws-cli`.** O `aws configure` guarda a access key em
+`~/.aws/credentials`; o perfil que o Terraform usa fica em `~/.aws/config` e
+aponta para a role. No devcontainer, `/home/dev/.aws` é um volume Docker nomeado
+— sobrevive a rebuild e nunca toca o repositório.
+
+```ini
+# ~/.aws/credentials  — a access key de vida longa, sem privilégio proprio
+[ops-admin]
+aws_access_key_id     = AKIA...
+aws_secret_access_key = ...
+
+# ~/.aws/config  — o perfil efetivamente usado
+[profile ops]
+role_arn       = arn:aws:iam::<ACCOUNT_ID>:role/ops-admin-role
+source_profile = ops-admin
+mfa_serial     = arn:aws:iam::<ACCOUNT_ID>:mfa/ops-admin
+region         = us-east-1
+```
+
+Com isso, `export AWS_PROFILE=ops` faz o `aws-cli` pedir o código do MFA e
+trabalhar com credencial temporária.
+
+**O Terraform não usa esse perfil diretamente.** O provider AWS lê o
+`mfa_serial`, entende que precisa de um token e falha com *"assume role with MFA
+enabled, but AssumeRoleTokenProvider session option not set"* — ele não tem
+prompt interativo para pedir o código. Quem tem é o `aws-cli`, então ele resolve
+a credencial e a entrega pronta:
+
+```bash
+export AWS_PROFILE=ops
+aws sts get-caller-identity          # pede o codigo do MFA uma vez, e cacheia
+
+eval "$(aws configure export-credentials --profile ops --format env)"
+unset AWS_PROFILE                    # as variaveis de ambiente tem precedencia
+terraform plan
+```
+
+O `export-credentials` lê o cache que o comando anterior deixou em
+`~/.aws/cli/cache` e exporta `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e
+`AWS_SESSION_TOKEN` já assumidos. Vale pelo tempo de sessão da role — uma hora,
+por padrão. Passado isso, repetir os dois comandos.
 
 ### O que vira Terraform
 
@@ -60,7 +161,9 @@ de log no CloudWatch. Nada além disso.
 ### Riscos
 
 - **Alarme de billing só dispara depois do gasto acontecer.** Ele avisa, não
-  previne. A prevenção real é o `terraform destroy` ao final de cada sessão.
+  previne. A prevenção real é o `terraform destroy` ao final de cada sessão —
+  que neste plano de free tier não protege a fatura, e sim o saldo de crédito
+  que define quanto tempo a conta ainda tem.
 - **`EstimatedCharges` só existe em `us-east-1`**, independentemente da região do
   resto da infra. O alarme precisa ser criado lá.
 - Política de privilégio mínimo escrita cedo demais gera atrito nas fases
@@ -70,14 +173,21 @@ de log no CloudWatch. Nada além disso.
 ### Checklist de validação
 
 - [ ] Login no root exige MFA.
-- [ ] Existe um usuário/perfil administrativo no Identity Center e o root não é
-      usado no dia a dia.
-- [ ] `aws iam list-attached-role-policies` nas roles criadas não retorna
-      `AdministratorAccess` nem `PowerUserAccess`.
+- [ ] `aws sts get-caller-identity` com o perfil de operação retorna a role
+      administrativa assumida, não o usuário IAM — prova que o `assume-role` está
+      no caminho.
+- [ ] Assumir a role sem MFA falha com `AccessDenied`.
+- [ ] O usuário IAM não tem policy anexada além da de assumir a role.
+- [ ] A conta **não** está em uma AWS Organization
+      (`aws organizations describe-organization` retorna
+      `AWSOrganizationsNotInUseException`) e o plano continua sendo o Free
+      account plan.
+- [ ] `aws iam list-attached-role-policies` nas roles de instância criadas pelo
+      Terraform não retorna `AdministratorAccess` nem `PowerUserAccess`.
 - [ ] O orçamento aparece em Billing → Budgets e o e-mail de notificação foi
       confirmado.
 - [ ] Alarme de `EstimatedCharges` existe em `us-east-1` e está em estado `OK`.
-- [ ] Tipo de free tier da conta confirmado e registrado em
+- [x] Tipo de free tier da conta confirmado e registrado em
       [`../04-custos.md`](../04-custos.md).
 
 ---

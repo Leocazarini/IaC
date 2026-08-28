@@ -4,14 +4,23 @@ Todos os valores abaixo foram verificados nas páginas oficiais de preço da AWS
 (links ao final). Preços em USD, região `us-east-1`. Regiões brasileiras
 (`sa-east-1`) custam significativamente mais.
 
+A região do projeto é **`us-east-1`** (`location_code = "use1"`) — decidida na
+Fase 1.1, pelo custo e por ser onde a métrica de billing existe de qualquer
+forma. A latência maior a partir do Brasil é o preço aceito; num ambiente de
+laboratório destruído ao final de cada sessão, ela não é o critério dominante.
+
 ---
 
-## Pendência: qual é o free tier desta conta?
+## Qual é o free tier desta conta
 
-> **P1 — bloqueia a Camada 2.** A AWS reestruturou o Free Tier em **15 de julho de
-> 2025**, e os dois modelos coexistem. A data de criação da conta determina qual se
-> aplica, e isso muda a estimativa de custo. **Verificar em Console AWS →
-> Billing and Cost Management → Free Tier antes de provisionar qualquer instância.**
+> **P1 — resolvida na Fase 1.1.** A conta está no **modelo novo** (criada em ou
+> após 15/jul/2025), no **Free account plan**. Descoberto de forma indireta: ao
+> tentar ativar o IAM Identity Center, o console avisou que a ativação faria a
+> conta perder o free tier — aviso que **só existe no plano novo**. Confirmado na
+> documentação de Billing.
+
+A AWS reestruturou o Free Tier em 15 de julho de 2025 e os dois modelos coexistem.
+A coluna da direita é a que vale aqui:
 
 | | Conta criada **antes** de 15/jul/2025 | Conta criada **em ou após** 15/jul/2025 |
 |---|---|---|
@@ -20,13 +29,30 @@ Todos os valores abaixo foram verificados nas páginas oficiais de preço da AWS
 | Duração | 12 meses a partir da criação da conta | 6 meses, ou até o crédito acabar — o que vier primeiro |
 | Ao estourar | Passa a cobrar pay-as-you-go | No *Free plan*, o uso é bloqueado; no *Paid plan*, passa a cobrar |
 
-**Duas armadilhas a registrar:**
+**O que o modelo novo muda para este projeto:**
 
-1. **As 750 h/mês são um pool compartilhado, não por instância.** Duas instâncias
-   rodando 24/7 consomem ~1.460 h/mês — uma fica coberta, a outra é cobrada.
-2. **`t4g.nano` não é elegível ao free tier em nenhum dos modelos.** A lista inclui
-   `t4g.micro`, não `t4g.nano`. O bastion será cobrado (~US$ 3/mês) de qualquer
-   forma — o que já está previsto na estimativa.
+1. **Não existe "instância grátis".** Não há 750 h/mês nem elegibilidade por tipo
+   de instância. Existe **saldo em dólar**: toda hora de EC2, do `t4g.nano` ao
+   `t3.micro`, desconta do crédito. A estimativa de ~US$ 8–16/mês continua válida
+   como consumo — o que muda é que ela sai do crédito, não da fatura.
+2. **O relógio é de 6 meses, e no fim dele a conta fecha.** Quando o Free account
+   plan encerra — por tempo ou por crédito esgotado — a conta é **fechada
+   automaticamente**. A AWS retém o conteúdo por 90 dias; migrar para o Paid
+   account plan dentro dessa janela preserva tudo, e o crédito restante vira
+   desconto em faturas futuras. Fora dela, a conta e os recursos são apagados.
+3. **`terraform destroy` ao final da sessão deixou de ser só higiene de custo.**
+   No modelo legado, esquecer o ambiente de pé custava dinheiro. Aqui, consome o
+   saldo que define quanto tempo o projeto ainda tem.
+4. **Sete ações convertem a conta para o plano pago e expiram os créditos na
+   hora.** A lista dos termos: entrar no AWS Organizations, criar uma landing zone
+   do Control Tower, entrar no AWS Partner Network, contratar Professional
+   Services, entrar em Enterprise Agreement, comprar Skill Builder Team, ou
+   marcar a conta como HIPAA/SEC. **A primeira delas é a que quase aconteceu** —
+   ver a ADR-009 em [`03-decisoes.md`](./03-decisoes.md).
+5. **O Free account plan não dá acesso a tudo.** Serviços e recursos que possam
+   drenar crédito de forma inesperada — Savings Plans, Reserved Instances, parte
+   do Marketplace — ficam fora, e só aparecem no plano pago. Nenhum deles está
+   no escopo deste projeto.
 
 ### Os créditos cobrem os serviços pagos?
 
@@ -54,7 +80,8 @@ Estado de cada serviço mencionado no guia de segurança.
 |---|---|
 | VPC, subnets, route tables, Internet Gateway | Sem cobrança própria |
 | Security Groups, Network ACLs | Sem cobrança própria |
-| IAM, IAM Identity Center, MFA virtual | Sem cobrança em nenhum cenário |
+| IAM, MFA virtual | Sem cobrança em nenhum cenário |
+| IAM Identity Center | O serviço é gratuito, **mas ativá-lo cria uma AWS Organization** e isso converte a conta para o plano pago, expirando os créditos. Não é gratuito neste contexto — ver ADR-009 |
 | AWS Shield Standard | Incluído automaticamente em toda conta |
 | ACM (certificado público) | Grátis para uso com CloudFront/ALB/API Gateway |
 | IMDSv2, IAM Instance Profile | Atributos da instância |

@@ -16,7 +16,9 @@ crash.*.log
 !*.tfvars.example
 
 # Plano salvo em arquivo binario, contem os valores das variaveis.
+# O nome sem extensao e o default de `terraform plan -out`, e precisa constar.
 *.tfplan
+tfplan
 
 # Segredos do Ansible.
 vault-pass

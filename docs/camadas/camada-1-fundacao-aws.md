@@ -130,8 +130,16 @@ aws sts get-caller-identity          # pede o codigo do MFA uma vez, e cacheia
 
 eval "$(aws configure export-credentials --profile ops --format env)"
 unset AWS_PROFILE                    # as variaveis de ambiente tem precedencia
+export AWS_DEFAULT_REGION=us-east-1  # o unset acima levou a regiao junto
 terraform plan
 ```
+
+**Por que o `AWS_DEFAULT_REGION` aparece aqui.** O `unset AWS_PROFILE` descarta
+tambem a regiao, que vinha do perfil. O Terraform nao sente — a regiao dele esta
+no `providers.tf` — mas qualquer `aws ec2 describe-*` posterior falha com
+`NoRegion`, e o erro nao sugere a causa. E o mesmo motivo pelo qual um recurso
+"nao aparece" no console: ele abre na ultima regiao usada, e a deste projeto e
+`us-east-1` (N. Virginia).
 
 O `export-credentials` lê o cache que o comando anterior deixou em
 `~/.aws/cli/cache` e exporta `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e
@@ -222,21 +230,82 @@ dois é bug, não defesa em profundidade.
 | Recurso | Detalhe |
 |---|---|
 | `aws_vpc` | `10.0.0.0/16`, DNS hostnames habilitado |
-| `aws_subnet` (public) | `10.0.1.0/24` |
+| `aws_subnet` (public) | `10.0.1.0/24`, `map_public_ip_on_launch = false` |
 | `aws_subnet` (private) | `10.0.11.0/24`, `map_public_ip_on_launch = false` |
 | `aws_internet_gateway` | Anexado à VPC |
 | `aws_route_table` (public) | `0.0.0.0/0` → IGW |
-| `aws_route_table` (private) | `0.0.0.0/0` → ENI do bastion *(implementação na Fase 2.1)* |
-| `aws_security_group` (bastion) | UDP 51820 aberto; TCP 22 apenas de `admin_cidr` |
+| `aws_route_table` (private) | Sem rota default *(a rota para a ENI do bastion entra na Fase 2.1)* |
+| `aws_route_table_association` (public, private) | Um subnet por tabela |
+| `aws_security_group` (bastion) | UDP 51820 aberto; TCP 22 apenas de `admin_cidr`; todo o tráfego do subnet privado |
 | `aws_security_group` (app) | TCP 22 do CIDR WireGuard; 80/443 dos ranges Cloudflare |
-| `aws_network_acl` (public, private) | Espelham os SGs, mais portas efêmeras |
+| `aws_network_acl` (public, private) | Espelham os SGs, mais portas efêmeras nos dois sentidos |
+| `aws_network_acl_rule` | Uma regra por linha das tabelas de perímetro abaixo |
 
 **Sobre `admin_cidr`:** variável que existe apenas para a janela de bootstrap.
 Quando o WireGuard sobe (Fase 3.3), ela é esvaziada e a regra de SSH desaparece do
 Security Group. Ver a sequência completa em [`../02-arquitetura.md`](../02-arquitetura.md).
 
 **Sobre os ranges da Cloudflare:** obtidos dinamicamente via `data "http"` sobre
-`https://www.cloudflare.com/ips-v4`, nunca fixados. Eles mudam.
+`https://www.cloudflare.com/ips-v4`, nunca fixados. Eles mudam. Hoje são 15
+prefixos; o `data source` tem `postcondition` no código de status, porque uma
+resposta de erro produziria uma lista vazia — e uma lista vazia não falha, apenas
+apaga silenciosamente as regras de 80/443.
+
+### As duas paredes, regra por regra
+
+**Security Group do bastion** — entrada:
+
+| Porta | Origem | Por quê |
+|---|---|---|
+| UDP 51820 | `0.0.0.0/0` | O peer administrativo conecta de onde estiver; quem autentica é a chave, não o endereço |
+| TCP 22 | `admin_cidr` | Janela de bootstrap; a regra desaparece quando a lista fica vazia |
+| todo o tráfego | `10.0.11.0/24` | **Requisito do NAT**, ver abaixo |
+
+**Security Group do app** — entrada: TCP 22 do CIDR WireGuard, TCP 80 e 443 de
+cada range da Cloudflare. Saída liberada nos dois.
+
+**NACLs** — entrada e saída, por subnet:
+
+| | Público | Privado |
+|---|---|---|
+| Entrada | todo o tráfego da VPC · UDP 51820 · TCP 80/443 · TCP 22 de `admin_cidr` · efêmeras TCP e UDP | todo o tráfego da VPC e do CIDR WireGuard · TCP 80/443 · efêmeras TCP e UDP |
+| Saída | todo o tráfego da VPC · DNS 53 TCP/UDP · NTP 123 · TCP 80/443 · efêmeras TCP e UDP | idem, mais todo o tráfego do CIDR WireGuard |
+
+### Decisões tomadas na implementação
+
+**O Security Group do bastion precisa aceitar o subnet privado inteiro.** Isso não
+estava nas regras previstas em [`../02-arquitetura.md`](../02-arquitetura.md) e é
+o tipo de omissão que só aparece quando o NAT não funciona. O tráfego do host de
+aplicação para a internet chega ao bastion pela ENI dele — e uma ENI é avaliada
+pelo Security Group como qualquer outra entrada. Sem a regra, o roteamento existe,
+a rota está correta, e nenhum pacote passa.
+
+**A NACL é mais grossa que o Security Group, de propósito.** Uma NACL aceita 20
+regras; 15 ranges da Cloudflare × 2 portas são 30. A restrição por origem do
+tráfego web fica no Security Group, que é a fonte da verdade; a NACL confere
+apenas a porta. Isso não é preguiça: a NACL existe para segurar um erro de
+configuração no SG, e uma NACL que precise ser reescrita a cada mudança da
+Cloudflare erraria mais do que protegeria.
+
+**A saída das NACLs é lista explícita, não `allow all`.** Resolução de nome,
+relógio, HTTP e HTTPS, mais as portas efêmeras de retorno. A consequência a
+registrar: tráfego de saída para uma porta fora dessa lista é descartado pela
+NACL, mesmo com o Security Group liberado. Se uma fase futura precisar de uma
+porta nova de saída, ela entra naquela fase.
+
+**O subnet público também tem `map_public_ip_on_launch = false`.** O bastion
+recebe um Elastic IP explícito na Fase 2.1. Endereço público automático criaria um
+segundo IP, efêmero, que muda a cada parada da instância e fica fora do alcance do
+registro DNS.
+
+**Os dois subnets ficam na mesma zona de disponibilidade.** Tráfego entre zonas é
+cobrado por GB, e todo o tráfego do host de aplicação passa pelo bastion. A zona
+vem da variável `availability_zone`; nula, usa a primeira da região.
+
+**A tabela de rotas do subnet privado nasce sem rota default.** Uma rota que aponta
+para uma ENI não pode ser declarada antes de a ENI existir. Até a Fase 2.1, o
+subnet privado alcança apenas a própria VPC — o que é o comportamento correto, não
+uma pendência.
 
 ### Riscos
 
@@ -257,6 +326,9 @@ Security Group. Ver a sequência completa em [`../02-arquitetura.md`](../02-arqu
 - [ ] Regra de SSH do bastion aponta para `admin_cidr`, não para `0.0.0.0/0`.
 - [ ] NACLs têm as regras de porta efêmera nos dois sentidos.
 - [ ] Ranges da Cloudflare vêm de `data source`, não estão fixos no código.
+- [ ] O Security Group do bastion aceita o CIDR do subnet privado — sem essa
+      regra o NAT da Fase 2.1 não encaminha nada.
+- [ ] Os dois subnets estão na mesma zona de disponibilidade.
 
 ---
 

@@ -15,7 +15,7 @@ variable "environment" {
 variable "phase" {
   description = "Fase que criou ou alterou os recursos por ultimo. Preenche a tag Phase."
   type        = string
-  default     = "c1f1"
+  default     = "c1f2"
 }
 
 variable "region" {

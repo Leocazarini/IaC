@@ -3,10 +3,10 @@
 > **Este é o primeiro arquivo a ler ao retomar o trabalho.** Ele contém apenas
 > status e ponteiros. O conteúdo de cada fase está no documento da sua camada.
 
-**Fase atual:** 1.1 — 🟦 em validação, na branch `feat/c1f1-iam-identidade`
-**Próxima ação concreta:** confirmar a assinatura de e-mail do SNS (chega como
-mensagem da AWS, exige um clique) e fechar o checklist da fase. Depois: os dois
-textos, o PR, e a Fase 1.2. Ver
+**Fase atual:** 1.2 — 🟦 em validação, na branch `feat/c1f2-vpc-rede`
+**Próxima ação concreta:** aplicada no lab e com o checklist da fase inteiro
+verde (78 recursos, custo zero, segundo `plan` sem diferenças). Falta abrir o PR
+e mergear. Depois: Fase 1.3, criptografia e auditoria. Ver
 [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md).
 
 ---
@@ -35,8 +35,8 @@ Detalhes: [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.m
 
 | Fase | Conteúdo | Status | Branch | PR |
 |---|---|---|---|---|
-| 1.1 | Identidade: IAM, instance profiles, alarme de billing | 🟦 | `feat/c1f1-iam-identidade` | — |
-| 1.2 | Rede: VPC, subnets, IGW, rotas, SG, NACL | ⬜ | `feat/c1f2-vpc-rede` | — |
+| 1.1 | Identidade: IAM, instance profiles, alarme de billing | ✅ | `feat/c1f1-iam-identidade` | [#2](https://github.com/Leocazarini/IaC/pull/2) |
+| 1.2 | Rede: VPC, subnets, IGW, rotas, SG, NACL | 🟦 | `feat/c1f2-vpc-rede` | — |
 | 1.3 | Criptografia e auditoria: EBS default, CloudTrail, Flow Logs | ⬜ | `feat/c1f3-cripto-auditoria` | — |
 
 ## Camada 2 — Provisionamento
@@ -114,6 +114,7 @@ Detalhes: [`camadas/camada-8-continuidade.md`](./camadas/camada-8-continuidade.m
 |---|---|---|---|
 | P2 | **Domínio e zona Cloudflare não definidos.** | Camada 4 | Confirmar o domínio a usar e que ele já está com nameservers apontando para a Cloudflare |
 | P4 | **Conta Backblaze B2 para backup não criada.** | Camada 8 | Criar antes da Fase 8.1 |
+| P8 | **O arquivo `terraform/envs/lab/tfplan` foi commitado no PR #2 e está no histórico do `main`.** É o plano binário da Fase 1.1: contém, em texto claro, o IP público do operador e o e-mail de billing. O `.gitignore` tinha `*.tfplan`, que não pega um arquivo chamado `tfplan`. | Nada tecnicamente; é exposição de dado | O arquivo saiu do índice e o `.gitignore` foi corrigido na branch da Fase 1.2. Remover do histórico exige reescrita (`git filter-repo`) e `push --force`; decidir se vale, considerando que o IP residencial muda e o e-mail já é público nos commits |
 | P7 | **O Free account plan encerra em 6 meses ou quando os créditos zerarem — e a conta fecha automaticamente.** Há 90 dias para migrar ao Paid account plan antes da exclusão dos recursos. | Continuidade do projeto | Acompanhar o saldo em Billing → Free Tier; decidir a migração antes do fim do prazo. Ver [`04-custos.md`](./04-custos.md) |
 
 **Resolvidas:** P6 — identidade de bootstrap de pé: usuário `ops-admin` com MFA,
@@ -134,3 +135,4 @@ _(preencher conforme as fases forem mergeadas: data, fase, PR, observação)_
 | Data | Fase | PR | Observação |
 |---|---|---|---|
 | 2026-08-26 | 0.1 | [#1](https://github.com/Leocazarini/IaC/pull/1) | Esqueleto do repositório, pre-commit e contrato de outputs. Nenhum recurso criado, custo zero. |
+| 2026-08-28 | 1.1 | [#2](https://github.com/Leocazarini/IaC/pull/2) | Roles e instance profiles das duas instâncias com privilégio mínimo escrito à mão, orçamento mensal e alarme de `EstimatedCharges` em `us-east-1`. Identidade de bootstrap (`ops-admin` + `ops-admin-role` com MFA) feita à mão no console. Custo zero. |

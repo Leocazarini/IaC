@@ -162,7 +162,9 @@ validação da Fase 1.2.
 
 **SG do bastion**
 - Entrada: UDP 51820 de qualquer origem (WireGuard); TCP 22 apenas de `admin_cidr`
-  durante a janela de bootstrap, removido depois.
+  durante a janela de bootstrap, removido depois; todo o tráfego vindo do CIDR do
+  subnet privado — o tráfego que o bastion roteia chega pela ENI dele e é avaliado
+  pelo Security Group como qualquer outra entrada.
 - Saída: liberada (precisa rotear o tráfego do subnet privado).
 
 **SG do app**
@@ -172,6 +174,10 @@ validação da Fase 1.2.
 
 **NACL do subnet público** — espelha o SG do bastion, mais as portas efêmeras.
 **NACL do subnet privado** — permite tráfego de/para a VPC e a saída via bastion.
+
+As NACLs são deliberadamente mais grossas que os SGs: o limite de 20 regras por
+NACL não comporta uma entrada por range da Cloudflare, então a restrição por
+origem do tráfego web fica só no Security Group.
 
 Detalhamento na [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md).
 

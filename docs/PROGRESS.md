@@ -3,12 +3,10 @@
 > **Este é o primeiro arquivo a ler ao retomar o trabalho.** Ele contém apenas
 > status e ponteiros. O conteúdo de cada fase está no documento da sua camada.
 
-**Fase atual:** 1.2 — 🟨 em andamento, na branch `feat/c1f2-vpc-rede`
-**Próxima ação concreta:** resolver a credencial com MFA (`export AWS_PROFILE=ops`,
-`aws sts get-caller-identity`, `eval "$(aws configure export-credentials --profile
-ops --format env)"`, `unset AWS_PROFILE`) e rodar `terraform plan` no `envs/lab`.
-O código da rede está escrito e validado estaticamente; falta aplicar e percorrer
-o checklist da Fase 1.2 em
+**Fase atual:** 1.2 — 🟦 em validação, na branch `feat/c1f2-vpc-rede`
+**Próxima ação concreta:** aplicada no lab e com o checklist da fase inteiro
+verde (78 recursos, custo zero, segundo `plan` sem diferenças). Falta abrir o PR
+e mergear. Depois: Fase 1.3, criptografia e auditoria. Ver
 [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md).
 
 ---
@@ -38,7 +36,7 @@ Detalhes: [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.m
 | Fase | Conteúdo | Status | Branch | PR |
 |---|---|---|---|---|
 | 1.1 | Identidade: IAM, instance profiles, alarme de billing | ✅ | `feat/c1f1-iam-identidade` | [#2](https://github.com/Leocazarini/IaC/pull/2) |
-| 1.2 | Rede: VPC, subnets, IGW, rotas, SG, NACL | 🟨 | `feat/c1f2-vpc-rede` | — |
+| 1.2 | Rede: VPC, subnets, IGW, rotas, SG, NACL | 🟦 | `feat/c1f2-vpc-rede` | — |
 | 1.3 | Criptografia e auditoria: EBS default, CloudTrail, Flow Logs | ⬜ | `feat/c1f3-cripto-auditoria` | — |
 
 ## Camada 2 — Provisionamento

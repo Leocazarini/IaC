@@ -130,8 +130,16 @@ aws sts get-caller-identity          # pede o codigo do MFA uma vez, e cacheia
 
 eval "$(aws configure export-credentials --profile ops --format env)"
 unset AWS_PROFILE                    # as variaveis de ambiente tem precedencia
+export AWS_DEFAULT_REGION=us-east-1  # o unset acima levou a regiao junto
 terraform plan
 ```
+
+**Por que o `AWS_DEFAULT_REGION` aparece aqui.** O `unset AWS_PROFILE` descarta
+tambem a regiao, que vinha do perfil. O Terraform nao sente — a regiao dele esta
+no `providers.tf` — mas qualquer `aws ec2 describe-*` posterior falha com
+`NoRegion`, e o erro nao sugere a causa. E o mesmo motivo pelo qual um recurso
+"nao aparece" no console: ele abre na ultima regiao usada, e a deste projeto e
+`us-east-1` (N. Virginia).
 
 O `export-credentials` lê o cache que o comando anterior deixou em
 `~/.aws/cli/cache` e exporta `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e

@@ -77,8 +77,9 @@ data "aws_iam_policy_document" "instance" {
     ]
   }
 
-  # Escrita de log no CloudWatch. Os log groups sao criados na Fase 1.3; aqui
-  # so existe a permissao de escrever neles.
+  # Escrita de log no CloudWatch, restrita aos grupos do proprio ambiente. O
+  # grupo dos Flow Logs fica deliberadamente fora deste prefixo: registro que a
+  # instancia monitorada consegue escrever nao serve como evidencia.
   statement {
     sid    = "WriteOwnLogs"
     effect = "Allow"

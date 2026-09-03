@@ -1,7 +1,7 @@
 # Ambiente lab: descartavel por natureza. Criado no inicio de uma sessao de
 # teste, validado e destruido ao final.
 
-# Infraestrutura de compute, identidade e controle de gasto.
+# Infraestrutura de compute, identidade, controle de gasto e auditoria.
 #
 # O alias de billing e repassado explicitamente: e nele que vive o alarme de
 # EstimatedCharges, que so existe em us-east-1.
@@ -23,6 +23,8 @@ module "compute" {
 
   billing_email    = var.billing_email
   budget_limit_usd = var.budget_limit_usd
+
+  trail_bucket_force_destroy = var.trail_bucket_force_destroy
 }
 
 # Borda publica

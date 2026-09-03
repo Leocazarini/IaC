@@ -15,7 +15,7 @@ variable "environment" {
 variable "phase" {
   description = "Fase que criou ou alterou os recursos por ultimo. Preenche a tag Phase."
   type        = string
-  default     = "c1f2"
+  default     = "c1f3"
 }
 
 variable "region" {
@@ -43,6 +43,18 @@ variable "ssh_public_key" {
   description = "Chave publica SSH autorizada no usuario administrativo."
   type        = string
   default     = null
+}
+
+# --- Auditoria ---------------------------------------------------------------
+
+variable "trail_bucket_force_destroy" {
+  description = <<-EOT
+    Autoriza o destroy a apagar o bucket do CloudTrail com objetos dentro. O lab
+    e destruido ao final de cada sessao; um bucket que sobrevive ao destroy vira
+    recurso orfao na fatura.
+  EOT
+  type        = bool
+  default     = true
 }
 
 # --- Custo -------------------------------------------------------------------

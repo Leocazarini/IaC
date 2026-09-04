@@ -350,12 +350,16 @@ período mais crítico.
 | Recurso | Detalhe |
 |---|---|
 | `aws_ebs_encryption_by_default` | Habilitado na região. Todo volume criado daí em diante nasce criptografado |
-| `aws_s3_bucket` (trail) | Bucket do CloudTrail, acesso público bloqueado, versionamento ligado |
-| `aws_s3_bucket_policy` | Permite escrita apenas ao serviço CloudTrail |
+| `aws_s3_bucket` (trail) | Bucket do CloudTrail, nome sufixado pelo identificador da conta |
+| `aws_s3_bucket_public_access_block` | As quatro travas de acesso público ligadas |
+| `aws_s3_bucket_versioning` | Preserva o objeto original quando algo o sobrescreve |
+| `aws_s3_bucket_server_side_encryption_configuration` | `AES256`, com a chave gerenciada pelo S3 |
+| `aws_s3_bucket_policy` | Permite escrita apenas ao serviço CloudTrail, e apenas em nome deste trail |
 | `aws_s3_bucket_lifecycle_configuration` | Expira objetos antigos — evita crescimento indefinido |
-| `aws_cloudtrail` | Multi-região, apenas management events (o trail gratuito) |
-| `aws_flow_log` | VPC Flow Logs, `traffic_type = "REJECT"`, destino CloudWatch Logs |
+| `aws_cloudtrail` | Multi-região, apenas management events (o trail gratuito), com validação de integridade |
 | `aws_cloudwatch_log_group` | Retenção curta, para caber nos 5 GB gratuitos |
+| `aws_iam_role` + `aws_iam_role_policy` (flow log) | Identidade do serviço de Flow Logs, restrita a esse único log group |
+| `aws_flow_log` | VPC Flow Logs, `traffic_type = "REJECT"`, destino CloudWatch Logs |
 
 ### Duas decisões de custo embutidas
 
@@ -369,6 +373,43 @@ si é idêntica.
 do CloudWatch rapidamente e gera cobrança. `REJECT` registra o que foi bloqueado
 — que é o sinal de segurança útil. O tráfego aceito já aparece nos logs da
 aplicação.
+
+### Decisões tomadas na implementação
+
+**O log group dos Flow Logs fica fora do prefixo que as roles de instância podem
+escrever.** A política de privilégio mínimo da Fase 1.1 dá às instâncias
+`logs:PutLogEvents` em `/vps-infra/lab/*`. Um log de rede colocado ali seria
+gravável pela própria máquina que ele existe para vigiar — e registro que o
+vigiado pode escrever não é evidência. O grupo mora em `/aws/vpc/flow-logs/…`, que
+nenhuma role de instância alcança.
+
+**O serviço de Flow Logs precisa de uma role própria, que não estava na tabela do
+plano.** Quem escreve no CloudWatch é o serviço, não a instância, e ele só escreve
+assumindo uma role da conta. A trust policy carrega `aws:SourceAccount` e
+`aws:SourceArn`, para que um flow log de outra conta não consiga usá-la — o mesmo
+cuidado de confused deputy aplicado à política do bucket.
+
+**A política do bucket é condicionada ao ARN do trail, e esse ARN é montado à
+mão.** Ler `aws_cloudtrail.main.arn` criaria um ciclo: o trail só sobe depois que a
+política autoriza a escrita, e a política precisaria do trail para existir. O ARN é
+previsível a partir da região, da conta e do nome, então é construído em `locals`.
+Sem a condição, qualquer trail de qualquer conta poderia pedir ao serviço que
+entregasse neste bucket.
+
+**Versionamento sem expiração de versão antiga não expira nada.** Com
+versionamento ligado, a regra de ciclo de vida que expira só a versão corrente
+apenas transforma o objeto em versão não-corrente, que fica no bucket para sempre.
+A regra cobre as duas, e ainda aborta upload multipart incompleto.
+
+**A criptografia do bucket é declarada, não herdada.** O S3 já criptografa por
+padrão desde 2023; declarar `AES256` explicitamente faz uma eventual mudança
+aparecer como diferença no `plan` em vez de passar despercebida. Custo zero, como
+a chave gerenciada pela AWS.
+
+**`force_destroy` do bucket do trail é variável, com padrão diferente por
+ambiente.** O módulo assume `false` — o padrão seguro, que preserva os registros.
+O `lab`, que é destruído ao final de cada sessão, passa `true`: ali o bucket que
+sobrevive ao `destroy` é exatamente o recurso órfão descrito nos riscos.
 
 ### Riscos
 
@@ -391,6 +432,10 @@ aplicação.
 - [ ] Flow Logs em estado `ACTIVE` e com `traffic_type` igual a `REJECT`.
 - [ ] Log group tem retenção definida — não `Never expire`.
 - [ ] Nenhuma CMK do KMS foi criada (`aws kms list-keys` só mostra chaves da AWS).
+- [ ] O bucket do trail recebeu objeto: `aws s3 ls` no prefixo `AWSLogs/` lista
+      arquivo depois de alguns minutos — o trail pode estar ligado e não entregar.
+- [ ] O log group dos Flow Logs **não** está sob o prefixo que as roles de
+      instância podem escrever.
 
 ---
 

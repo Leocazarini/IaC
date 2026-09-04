@@ -3,11 +3,13 @@
 > **Este é o primeiro arquivo a ler ao retomar o trabalho.** Ele contém apenas
 > status e ponteiros. O conteúdo de cada fase está no documento da sua camada.
 
-**Fase atual:** 1.2 — 🟦 em validação, na branch `feat/c1f2-vpc-rede`
-**Próxima ação concreta:** aplicada no lab e com o checklist da fase inteiro
-verde (78 recursos, custo zero, segundo `plan` sem diferenças). Falta abrir o PR
-e mergear. Depois: Fase 1.3, criptografia e auditoria. Ver
-[`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md).
+**Fase atual:** 1.3 — 🟦 em validação, na branch `feat/c1f3-cripto-auditoria`
+**Próxima ação concreta:** aplicada no lab (12 recursos criados, 55 alterados
+apenas na tag `Phase`, nenhum destruído) e com o checklist da fase inteiro verde;
+segundo `plan` sem diferenças. Falta abrir os PRs e mergear. A branch da 1.3 sai
+da branch da 1.2, que ainda não foi mergeada: o PR da 1.2 entra primeiro, e até
+lá o PR da 1.3 tem `feat/c1f2-vpc-rede` como base. Depois: Fase 2.1, bastion.
+Ver [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.md).
 
 ---
 
@@ -37,7 +39,7 @@ Detalhes: [`camadas/camada-1-fundacao-aws.md`](./camadas/camada-1-fundacao-aws.m
 |---|---|---|---|---|
 | 1.1 | Identidade: IAM, instance profiles, alarme de billing | ✅ | `feat/c1f1-iam-identidade` | [#2](https://github.com/Leocazarini/IaC/pull/2) |
 | 1.2 | Rede: VPC, subnets, IGW, rotas, SG, NACL | 🟦 | `feat/c1f2-vpc-rede` | — |
-| 1.3 | Criptografia e auditoria: EBS default, CloudTrail, Flow Logs | ⬜ | `feat/c1f3-cripto-auditoria` | — |
+| 1.3 | Criptografia e auditoria: EBS default, CloudTrail, Flow Logs | 🟦 | `feat/c1f3-cripto-auditoria` | — |
 
 ## Camada 2 — Provisionamento
 

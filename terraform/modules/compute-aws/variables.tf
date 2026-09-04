@@ -142,6 +142,31 @@ variable "app_root_volume_size" {
   default     = 20
 }
 
+# --- Auditoria ---------------------------------------------------------------
+
+variable "trail_retention_days" {
+  description = "Dias que os arquivos do CloudTrail ficam no bucket antes de expirar. Sem expiracao o bucket cresce indefinidamente."
+  type        = number
+  default     = 90
+}
+
+variable "trail_bucket_force_destroy" {
+  description = <<-EOT
+    Autoriza o destroy a apagar o bucket do CloudTrail com objetos dentro.
+    Falso deixa o bucket de pe depois do destroy, com os registros preservados
+    e um custo residual pequeno.
+    Minimo: false em ambiente duradouro | Recomendado: true em ambiente descartavel
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "flow_log_retention_days" {
+  description = "Dias de retencao do log group dos Flow Logs. Curto o bastante para caber nos 5 GB gratuitos do CloudWatch."
+  type        = number
+  default     = 14
+}
+
 # --- Custo -------------------------------------------------------------------
 
 variable "billing_email" {

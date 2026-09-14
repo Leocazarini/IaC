@@ -18,7 +18,7 @@ services:
     command: sleep infinity
     environment:
       TZ: America/Sao_Paulo
-      AWS_PROFILE: ${AWS_PROFILE:-default}
+      AWS_PROFILE: ${AWS_PROFILE:-ops}
       # Apenas nome e e-mail de autoria, lidos do host pelo script `dev`.
       GIT_USER_NAME: ${GIT_USER_NAME:-}
       GIT_USER_EMAIL: ${GIT_USER_EMAIL:-}
